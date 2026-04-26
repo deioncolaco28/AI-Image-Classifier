@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI IMAGE CLASSIFIER | Vision Intelligence</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-color: #0f172a; /* Lighter Slate-Indigo */
+            --card-bg: rgba(30, 41, 59, 0.6);
+            --text-main: #f8fafc;
+            --text-muted: #cbd5e1;
+            --accent: #38bdf8;
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --green: #10b981;
+            --yellow: #f59e0b;
+            --red: #ef4444;
+            --grad: linear-gradient(90deg, #38bdf8, #818cf8, #f472b6, #38bdf8);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* INTERACTIVE AURORA GLASS BACKGROUND */
+        .aurora-bg {
+            position: fixed; inset: 0; z-index: -2;
+            background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+            overflow: hidden;
+        }
+
+        .blob {
+            position: absolute; width: 600px; height: 600px;
+            background: var(--primary); border-radius: 50%;
+            filter: blur(100px); opacity: 0.4;
+            transition: transform 0.5s ease-out, scale 0.5s ease-out;
+            pointer-events: none;
+        }
+        .blob-1 { background: #38bdf8; top: -10%; left: -10%; }
+        .blob-2 { background: #818cf8; bottom: -10%; right: -10%; }
+        .blob-3 { background: #f472b6; top: 40%; left: 30%; width: 400px; height: 400px; opacity: 0.2; }
+
+        .glass-mesh {
+            position: fixed; inset: 0; z-index: -1;
+            background-image: 
+                radial-gradient(rgba(255,255,255,0.05) 1px, transparent 0);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(circle at var(--m-x, 50%) var(--m-y, 50%), black 0%, transparent 50%);
+            -webkit-mask-image: radial-gradient(circle at var(--m-x, 50%) var(--m-y, 50%), black 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .main-content {
+            width: 100%; max-width: 1200px;
+            padding: 5rem 2rem; display: flex; flex-direction: column; align-items: center;
+            z-index: 1;
+        }
+
+        /* Flowing Header */
+        .main-header { text-align: center; margin-bottom: 5rem; }
+        .main-header h1 {
+            font-size: 5rem; font-weight: 900; margin-bottom: 1.5rem; letter-spacing: -4px;
+            background: var(--grad); background-size: 300% auto;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            animation: flowGradient 6s linear infinite;
+            filter: drop-shadow(0 10px 30px rgba(0,0,0,0.3));
+            transition: 0.4s;
+        }
+        .main-header h1:hover { transform: scale(1.03) translateY(-5px); filter: drop-shadow(0 20px 50px rgba(56, 189, 248, 0.4)); }
+        
+        @keyframes flowGradient {
+            0% { background-position: 0% center; }
+            100% { background-position: 300% center; }
+        }
+
+        .main-header p { 
+            color: var(--text-muted); font-size: 1rem; max-width: 800px; margin: 0 auto; 
+            line-height: 1.6; letter-spacing: 3px; font-weight: 700; text-transform: uppercase;
+        }
+
+        /* Dashboard Area */
+        .upload-section {
+            background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 40px;
+            padding: 6rem 2rem; text-align: center; cursor: pointer; transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            width: 100%; position: relative; overflow: hidden;
+            backdrop-filter: blur(40px); box-shadow: 0 40px 100px rgba(0,0,0,0.3);
+        }
+        .upload-section:hover { 
+            border-color: rgba(255,255,255,0.3); transform: translateY(-8px); 
+            background: rgba(255,255,255,0.05); box-shadow: 0 60px 120px rgba(0,0,0,0.4); 
+        }
+        
+        .upload-icon { font-size: 5.5rem; margin-bottom: 2rem; display: inline-block; filter: drop-shadow(0 0 20px rgba(255,255,255,0.2)); transition: 0.5s; }
+        .upload-section:hover .upload-icon { transform: scale(1.2) rotate(-5deg); filter: drop-shadow(0 0 40px var(--accent)); }
+        
+        .upload-title { font-size: 2.2rem; font-weight: 800; margin-bottom: 1rem; letter-spacing: -1px; }
+        .upload-subtitle { color: var(--text-muted); font-size: 1.1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; }
+
+        /* Results */
+        .compare-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 3.5rem; margin-top: 6rem; width: 100%; display: none; }
+        .result-card {
+            background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 40px;
+            overflow: hidden; backdrop-filter: blur(40px); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0; transform: translateY(50px);
+        }
+        .result-card.show { opacity: 1; transform: translateY(0); }
+        .result-card:hover { transform: translateY(-15px) scale(1.02); border-color: rgba(255,255,255,0.4); box-shadow: 0 50px 100px rgba(0,0,0,0.3); }
+        
+        .result-img-wrap { width: 100%; height: 450px; background: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; position: relative; }
+        .result-img-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .result-badge { 
+            position: absolute; top: 1.5rem; left: 1.5rem; background: rgba(255,255,255,0.1); 
+            backdrop-filter: blur(20px); padding: 12px 24px; border-radius: 18px; 
+            font-size: 0.9rem; font-weight: 800; border: 1px solid rgba(255,255,255,0.1); color: #fff;
+        }
+
+        .result-content { padding: 3.5rem; }
+        .res-table td { padding: 22px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .label-main { font-weight: 900; font-size: 1.6rem; text-transform: capitalize; margin-bottom: 8px; display: block; }
+        .label-sub { font-size: 1rem; color: var(--accent); font-weight: 800; text-transform: uppercase; letter-spacing: 2px; }
+        
+        .gauge-cell { width: 240px; text-align: right; }
+        .prob-text { font-weight: 950; font-size: 1.6rem; font-family: 'Inter', sans-serif; }
+        .gauge-outer { width: 100%; height: 14px; background: rgba(255, 255, 255, 0.1); border-radius: 20px; margin-top: 15px; overflow: hidden; }
+        .gauge-inner { height: 100%; border-radius: 20px; width: 0; transition: width 1.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+        .conf-very_high { background: var(--green); color: var(--green); }
+        .conf-high { background: var(--primary); color: var(--primary); }
+        .conf-medium { background: var(--yellow); color: var(--yellow); }
+        .conf-low { background: var(--red); color: var(--red); }
+
+        .master-meter-container { margin: 0 0 2rem 0; padding: 1.5rem; background: rgba(255,255,255,0.03); border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); }
+        .master-meter-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .conf-badge { padding: 4px 10px; border-radius: 8px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 5px; display: inline-block; }
+        .badge-very_high { background: rgba(16, 185, 129, 0.2); color: var(--green); border: 1px solid var(--green); }
+        .badge-high { background: rgba(99, 102, 241, 0.2); color: var(--primary); border: 1px solid var(--primary); }
+        .badge-medium { background: rgba(245, 158, 11, 0.2); color: var(--yellow); border: 1px solid var(--yellow); }
+        .badge-low { background: rgba(239, 68, 68, 0.2); color: var(--red); border: 1px solid var(--red); }
+
+        /* Buttons */
+        .btn-group { display: flex; gap: 30px; margin-top: 5rem; justify-content: center; }
+        .btn {
+            background: var(--grad); background-size: 200% auto;
+            color: white; border: none; border-radius: 24px;
+            padding: 1.6rem 4rem; font-weight: 900; cursor: pointer; font-size: 1.4rem;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; gap: 18px;
+            box-shadow: 0 20px 50px rgba(99,102,241,0.3); text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn:hover { transform: translateY(-8px) scale(1.05); box-shadow: 0 30px 70px rgba(99,102,241,0.5); background-position: right center; }
+        .btn:disabled { background: #475569; opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-secondary { background: rgba(255,255,255,0.05); color: var(--text-main); border: 1px solid var(--glass-border); box-shadow: none; }
+
+        .usage-note {
+            margin-top: 3rem; padding: 1.5rem 2.5rem; background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border); border-radius: 24px; max-width: 850px;
+            text-align: center; font-size: 1.1rem; color: var(--text-muted); line-height: 1.8;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Overlay */
+        .overlay {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(50px); display: none;
+            flex-direction: column; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .spinner-outer { width: 140px; height: 140px; position: relative; margin-bottom: 4rem; }
+        .spinner-inner { position: absolute; inset: 0; border: 6px solid var(--accent); border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
+        .spinner-inner:nth-child(2) { inset: 20px; border-color: var(--primary); border-bottom-color: transparent; animation: spin 1s linear reverse infinite; }
+        .overlay h2 { font-size: 2.5rem; font-weight: 950; letter-spacing: 8px; color: #fff; animation: pulseText 1.5s infinite; text-transform: uppercase; }
+
+        .preview-thumb { width: 100px; height: 100px; border-radius: 24px; border: 3px solid #fff; object-fit: cover; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        ::-webkit-scrollbar { width: 12px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; border: 3px solid transparent; background-clip: content-box; }
+    </style>
+</head>
+<body>
+    <div class="aurora-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+    <div class="glass-mesh" id="mesh"></div>
+
+    <main class="main-content">
+        <header class="main-header">
+            <h1>AI IMAGE CLASSIFIER</h1>
+            <p>High-Precision Dual-Brain Neural Ensemble | EfficientNet-V2-L + Swin-Transformer-B</p>
+        </header>
+
+        <div class="upload-section" id="drop-zone">
+            <input type="file" id="file-input" multiple accept="image/*" style="display: none;">
+            <div class="upload-icon">📸</div>
+            <div class="upload-title">SELECT IMAGES TO CLASSIFY</div>
+            <div class="upload-subtitle">Drop Images or Click to Begin (Max Limit: 30 Images)</div>
+            <div class="multi-preview" id="multi-preview"></div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn" id="btn-classify" disabled>⚡ SELECT CLASSIFICATION</button>
+            <button class="btn btn-secondary" id="btn-clear">SYSTEM RESET</button>
+        </div>
+
+        <div class="usage-note">
+            <strong>📝 Note:</strong> Simple images with solid backgrounds provide optimal results. In complex scenes, the AI prioritizes prominent foreground objects separated from the background.
+        </div>
+
+        <div class="compare-grid" id="compare-grid">
+            <!-- Results -->
+        </div>
+    </main>
+
+    <div class="overlay" id="loading-overlay">
+        <div class="spinner-outer">
+            <div class="spinner-inner"></div>
+            <div class="spinner-inner"></div>
+        </div>
+        <h2>SYNCING NEURAL DATA...</h2>
+    </div>
+
+    <script>
+        // --- INTERACTIVE AURORA GLASS LOGIC ---
+        const blobs = document.querySelectorAll('.blob');
+        const mesh = document.getElementById('mesh');
+
+        window.addEventListener('mousemove', (e) => {
+            const { clientX, clientY } = e;
+            const x = (clientX / window.innerWidth) * 100;
+            const y = (clientY / window.innerHeight) * 100;
+
+            // Move the "Light Probe" mesh
+            mesh.style.setProperty('--m-x', `${x}%`);
+            mesh.style.setProperty('--m-y', `${y}%`);
+
+            // Interactive Blobs
+            blobs.forEach((blob, i) => {
+                const shiftX = (clientX - window.innerWidth / 2) / (15 + i * 5);
+                const shiftY = (clientY - window.innerHeight / 2) / (15 + i * 5);
+                blob.style.transform = `translate(${shiftX}px, ${shiftY}px)`;
+                
+                // Scale blobs based on proximity
+                const rect = blob.getBoundingClientRect();
+                const bx = rect.left + rect.width / 2;
+                const by = rect.top + rect.height / 2;
+                const dist = Math.sqrt((clientX - bx)**2 + (clientY - by)**2);
+                const scale = Math.max(1, 1.5 - dist / 1000);
+                blob.style.scale = scale;
+            });
+        });
+
+        // --- Classification Logic ---
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const multiPreview = document.getElementById('multi-preview');
+        const btnClassify = document.getElementById('btn-classify');
+        const btnClear = document.getElementById('btn-clear');
+        const compareGrid = document.getElementById('compare-grid');
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        let selectedFiles = [];
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            selectedFiles = files;
+            multiPreview.innerHTML = '';
+            btnClassify.disabled = false;
+            files.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const img = document.createElement('img');
+                    img.src = ev.target.result;
+                    img.className = 'preview-thumb';
+                    img.style.animationDelay = `${index * 0.05}s`;
+                    multiPreview.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+        btnClear.addEventListener('click', () => {
+            selectedFiles = [];
+            multiPreview.innerHTML = '';
+            btnClassify.disabled = true;
+            compareGrid.innerHTML = '';
+            compareGrid.style.display = 'none';
+        });
+
+        btnClassify.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) return;
+            loadingOverlay.style.display = 'flex';
+            compareGrid.innerHTML = '';
+            compareGrid.style.display = 'grid';
+            
+            const formData = new FormData();
+            selectedFiles.forEach(file => formData.append('images', file));
+
+            try {
+                const response = await fetch('/classify-multiple', { method: 'POST', body: formData });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    data.results.forEach((res, index) => {
+                        setTimeout(() => renderResult(res, selectedFiles[index], index), index * 200);
+                    });
+                }
+            } catch (err) {
+                alert('Neural Link Error: Check server status.');
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        });
+
+        function renderResult(res, file, index) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                let rows = '';
+                
+                if (res.status === 'success') {
+                    res.results.forEach(pred => {
+                        rows += `
+                            <tr>
+                                <td>
+                                    <span class="label-main">${pred.label}</span>
+                                    <span class="label-sub">${pred.category} • ${pred.subcategory}</span>
+                                </td>
+                                <td class="gauge-cell">
+                                    <span class="prob-text" style="color: #fff; font-size: 1.8rem;">${pred.probability}%</span>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    rows = `<tr><td colspan="2" style="color:var(--red); padding: 3rem;">SYNC ERROR: ${res.message}</td></tr>`;
+                }
+                card.innerHTML = `
+                    <div class="result-img-wrap">
+                        <div class="result-badge">${file.name}</div>
+                        <img src="${e.target.result}">
+                    </div>
+                    <div class="result-content">
+                        <table class="res-table">${rows}</table>
+                    </div>
+                `;
+                compareGrid.appendChild(card);
+                requestAnimationFrame(() => card.classList.add('show'));
+            };
+            reader.readAsDataURL(file);
+        }
+    </script>
+</body>
+</html>
